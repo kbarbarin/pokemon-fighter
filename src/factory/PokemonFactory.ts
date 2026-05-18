@@ -13,6 +13,9 @@ export class PokemonFactory {
         defense: raw.stats[2].base_stat,
         speed: raw.stats[5].base_stat,
       },
+      moves: raw.moves?.slice(0, 12).map((m) => m.move.name) ?? [],
+      abilities: raw.abilities?.map((a) => a.ability.name) ?? [],
+      evolution: raw.species?.name ?? "",
     };
   }
 }

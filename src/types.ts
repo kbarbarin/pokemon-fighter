@@ -31,6 +31,9 @@ export interface Pokemon {
     defense: number;
     speed: number;
   };
+  moves: string[];
+  abilities: string[];
+  evolution: string;
 }
 
 export interface RawPokemon {
@@ -41,6 +44,9 @@ export interface RawPokemon {
   };
   types: { type: { name: PokemonType } }[];
   stats: { base_stat: number }[];
+  moves: { move: { name: string } }[];
+  abilities: { ability: { name: string } }[];
+  species: { name: string };
 }
 
 export interface PokemonViewModel extends DecoratedPokemon{

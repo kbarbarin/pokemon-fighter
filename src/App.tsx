@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import type { PokemonType, PokemonViewModel } from "./types";
+import type { PokemonViewModel } from "./types";
 import AppConfig from "./config";
 import { teamEvents } from "./observer/teamEvents";
-import { ByNameStrategy, ByTypeStrategy, BySortStrategy } from "./strategy/filterStrategies";
+import { BySortStrategy } from "./strategy/filterStrategies";
 import { AddPokemonCommand, RemovePokemonCommand, CommandHistory } from "./command/teamCommands";
-import { FilterBar } from "./components/FilterBar";
+import { applyPokemonFilter, EMPTY_FILTER_CRITERIA } from "./builder/filterBuilder";
+import type { PokemonFilterCriteria } from "./builder/filterBuilder";
+import { QueryFilterBuilder } from "./components/QueryFilterBuilder";
 import { PokemonList } from "./components/PokemonList";
 import { TeamPanel } from "./components/TeamPanel";
 import { Notification } from "./components/Notification";
@@ -15,8 +17,7 @@ function App() {
   const [pokemons, setPokemons] = useState<PokemonViewModel[]>([]);
   const [team, setTeam] = useState<PokemonViewModel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedType, setSelectedType] = useState<PokemonType | "all">("all");
+  const [filterCriteria, setFilterCriteria] = useState<PokemonFilterCriteria>(EMPTY_FILTER_CRITERIA);
   const [sortBy, setSortBy] = useState<"none" | "name" | "hp" | "attack" | "speed">("none");
   const [canUndo, setCanUndo] = useState(false);
   const teamRef = useRef<PokemonViewModel[]>([]);
@@ -55,12 +56,9 @@ function App() {
     setCanUndo(history.current.canUndo());
   }
 
-  const strategies = [
-    new ByNameStrategy(search),
-    new ByTypeStrategy(selectedType),
-    new BySortStrategy(sortBy),
-  ];
-  const filtered = strategies.reduce((acc, strategy) => strategy.apply(acc), pokemons);
+  const filtered = new BySortStrategy(sortBy).apply(
+    applyPokemonFilter(pokemons, filterCriteria)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,14 +68,21 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
         <div className="flex-1 min-w-0">
-          <FilterBar
-            selectedType={selectedType}
-            onTypeChange={setSelectedType}
-            search={search}
-            onSearchChange={setSearch}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-          />
+          <QueryFilterBuilder criteria={filterCriteria} onChange={setFilterCriteria} />
+
+          <div className="flex justify-end mb-6">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+            >
+              <option value="none">Trier par...</option>
+              <option value="name">Nom</option>
+              <option value="hp">HP</option>
+              <option value="attack">Attaque</option>
+              <option value="speed">Vitesse</option>
+            </select>
+          </div>
 
           {loading ? (
             <div className="flex items-center justify-center h-64">
@@ -93,7 +98,7 @@ function App() {
         </div>
 
         <TeamPanel team={team} onRemove={handleRemove} onUndo={handleUndo} canUndo={canUndo} />
-        <TeamPanel team={team} onRemove={handleRemove} onUndo={handleUndo} canUndo={canUndo} />      </main>
+      </main>
       <Notification />
     </div>
   );
