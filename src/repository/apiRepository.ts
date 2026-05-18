@@ -1,11 +1,13 @@
 import AppConfig from "../config";
 import { PokemonFactory } from "../factory/PokemonFactory";
+import type { Pokemon } from "../types";
+import type { PokemonRepository } from "./PokemonRepository";
 
-export class PokeAPIRepository {
+export class PokeAPIRepository implements PokemonRepository {
     baseUrl = AppConfig.API_URL
     limit = AppConfig.POKEMON_LIMIT
 
-    async getAllPokemon()
+    async getAllPokemon(): Promise<Pokemon[]>
     {
         const res = await fetch(`${this.baseUrl}/pokemon?limit=${this.limit}`);
         const data = await res.json();

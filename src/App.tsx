@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PokemonViewModel } from "./types";
 import AppConfig from "./config";
 import { teamEvents } from "./observer/teamEvents";
@@ -11,54 +11,119 @@ import { PokemonList } from "./components/PokemonList";
 import { TeamPanel } from "./components/TeamPanel";
 import { Notification } from "./components/Notification";
 import { PokeAPIRepository } from "./repository/apiRepository";
+import type { PokemonRepository } from "./repository/PokemonRepository";
+import { CachedPokemonProxy } from "./proxy/CachedPokemonProxy";
 import { presentPokemon } from "./presenter/PokemonPresenter";
+import { TeamPanelFactory } from "./factory/TeamPanelFactory";
+import { PokemonPaginator } from "./iterator/PokemonPaginator";
+import { useInfiniteScroll } from "./hooks/useInfiniteScroll";
+
+const PAGE_SIZE = 20;
+
+const playerPanelConfig = TeamPanelFactory.create("player");
+const opponentPanelConfig = TeamPanelFactory.create("opponent");
 
 function App() {
   const [pokemons, setPokemons] = useState<PokemonViewModel[]>([]);
-  const [team, setTeam] = useState<PokemonViewModel[]>([]);
+  const [playerTeam, setPlayerTeam] = useState<PokemonViewModel[]>([]);
+  const [opponentTeam, setOpponentTeam] = useState<PokemonViewModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCriteria, setFilterCriteria] = useState<PokemonFilterCriteria>(EMPTY_FILTER_CRITERIA);
   const [sortBy, setSortBy] = useState<"none" | "name" | "hp" | "attack" | "speed">("none");
-  const [canUndo, setCanUndo] = useState(false);
-  const teamRef = useRef<PokemonViewModel[]>([]);
-  const history = useRef(new CommandHistory());
+  const [canUndoPlayer, setCanUndoPlayer] = useState(false);
+  const [canUndoOpponent, setCanUndoOpponent] = useState(false);
+  const [displayed, setDisplayed] = useState<PokemonViewModel[]>([]);
+  const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => { teamRef.current = team; }, [team]);
+  const playerTeamRef = useRef<PokemonViewModel[]>([]);
+  const opponentTeamRef = useRef<PokemonViewModel[]>([]);
+  const playerHistory = useRef(new CommandHistory());
+  const opponentHistory = useRef(new CommandHistory());
+  const repositoryRef = useRef<PokemonRepository>(
+    new CachedPokemonProxy(new PokeAPIRepository())
+  );
+  const paginatorRef = useRef<PokemonPaginator | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => { playerTeamRef.current = playerTeam; }, [playerTeam]);
+  useEffect(() => { opponentTeamRef.current = opponentTeam; }, [opponentTeam]);
 
   useEffect(() => {
-    const repository = new PokeAPIRepository();
     setLoading(true);
-    repository.getAllPokemon().then((data) => {
+    repositoryRef.current.getAllPokemon().then((data) => {
       setPokemons(data.map((p) => presentPokemon(p)));
       setLoading(false);
     });
   }, []);
 
-  function handleAdd(pokemon: PokemonViewModel) {
-    if (team.length >= AppConfig.MAX_TEAM_SIZE) {
-      teamEvents.emit<string>("team:full", "Équipe complète ! Retirez un Pokémon pour en ajouter un autre.");
+  const filtered = useMemo(
+    () => new BySortStrategy(sortBy).apply(applyPokemonFilter(pokemons, filterCriteria)),
+    [pokemons, filterCriteria, sortBy]
+  );
+
+  useEffect(() => {
+    paginatorRef.current = new PokemonPaginator(filtered, PAGE_SIZE);
+    const firstPage = paginatorRef.current.next();
+    setDisplayed(firstPage);
+    setHasMore(paginatorRef.current.hasNext());
+  }, [filtered]);
+
+  const loadMore = useCallback(() => {
+    const paginator = paginatorRef.current;
+    if (!paginator || !paginator.hasNext()) return;
+    const nextPage = paginator.next();
+    setDisplayed((prev) => [...prev, ...nextPage]);
+    setHasMore(paginator.hasNext());
+  }, []);
+
+  useInfiniteScroll(sentinelRef, loadMore, hasMore && !loading);
+
+  function handleAddToPlayer(pokemon: PokemonViewModel) {
+    if (playerTeam.length >= AppConfig.MAX_TEAM_SIZE) {
+      teamEvents.emit<string>("team:full", "Mon équipe est complète !");
       return;
     }
-    if (team.find((p) => p.id === pokemon.id)) return;
-    const cmd = new AddPokemonCommand(pokemon, () => teamRef.current, setTeam);
-    history.current.execute(cmd);
-    setCanUndo(history.current.canUndo());
+    if (playerTeam.find((p) => p.id === pokemon.id)) return;
+    const cmd = new AddPokemonCommand(pokemon, () => playerTeamRef.current, setPlayerTeam);
+    playerHistory.current.execute(cmd);
+    setCanUndoPlayer(playerHistory.current.canUndo());
   }
 
-  function handleRemove(id: number) {
-    const cmd = new RemovePokemonCommand(id, () => teamRef.current, setTeam);
-    history.current.execute(cmd);
-    setCanUndo(history.current.canUndo());
+  function handleAddToOpponent(pokemon: PokemonViewModel) {
+    if (opponentTeam.length >= AppConfig.MAX_TEAM_SIZE) {
+      teamEvents.emit<string>("team:full", "L'équipe adverse est complète !");
+      return;
+    }
+    if (opponentTeam.find((p) => p.id === pokemon.id)) return;
+    const cmd = new AddPokemonCommand(pokemon, () => opponentTeamRef.current, setOpponentTeam);
+    opponentHistory.current.execute(cmd);
+    setCanUndoOpponent(opponentHistory.current.canUndo());
   }
 
-  function handleUndo() {
-    history.current.undo();
-    setCanUndo(history.current.canUndo());
+  function handleRemovePlayer(id: number) {
+    const cmd = new RemovePokemonCommand(id, () => playerTeamRef.current, setPlayerTeam);
+    playerHistory.current.execute(cmd);
+    setCanUndoPlayer(playerHistory.current.canUndo());
   }
 
-  const filtered = new BySortStrategy(sortBy).apply(
-    applyPokemonFilter(pokemons, filterCriteria)
-  );
+  function handleRemoveOpponent(id: number) {
+    const cmd = new RemovePokemonCommand(id, () => opponentTeamRef.current, setOpponentTeam);
+    opponentHistory.current.execute(cmd);
+    setCanUndoOpponent(opponentHistory.current.canUndo());
+  }
+
+  function handleUndoPlayer() {
+    playerHistory.current.undo();
+    setCanUndoPlayer(playerHistory.current.canUndo());
+  }
+
+  function handleUndoOpponent() {
+    opponentHistory.current.undo();
+    setCanUndoOpponent(opponentHistory.current.canUndo());
+  }
+
+  const playerTeamIds = playerTeam.map((p) => p.id);
+  const opponentTeamIds = opponentTeam.map((p) => p.id);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,7 +131,15 @@ function App() {
         <h1 className="text-2xl font-bold tracking-tight">Pokémon Team Builder</h1>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+      <main className="max-w-7xl mx-auto px-6 py-8 flex gap-6">
+        <TeamPanel
+          config={playerPanelConfig}
+          team={playerTeam}
+          onRemove={handleRemovePlayer}
+          onUndo={handleUndoPlayer}
+          canUndo={canUndoPlayer}
+        />
+
         <div className="flex-1 min-w-0">
           <QueryFilterBuilder criteria={filterCriteria} onChange={setFilterCriteria} />
 
@@ -90,14 +163,24 @@ function App() {
             </div>
           ) : (
             <PokemonList
-              pokemons={filtered}
-              teamIds={team.map((p) => p.id)}
-              onAdd={handleAdd}
+              pokemons={displayed}
+              playerTeamIds={playerTeamIds}
+              opponentTeamIds={opponentTeamIds}
+              onAddToPlayer={handleAddToPlayer}
+              onAddToOpponent={handleAddToOpponent}
+              sentinelRef={sentinelRef}
+              hasMore={hasMore}
             />
           )}
         </div>
 
-        <TeamPanel team={team} onRemove={handleRemove} onUndo={handleUndo} canUndo={canUndo} />
+        <TeamPanel
+          config={opponentPanelConfig}
+          team={opponentTeam}
+          onRemove={handleRemoveOpponent}
+          onUndo={handleUndoOpponent}
+          canUndo={canUndoOpponent}
+        />
       </main>
       <Notification />
     </div>

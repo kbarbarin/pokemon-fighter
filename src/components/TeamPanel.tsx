@@ -1,22 +1,23 @@
 import type { DecoratedPokemon } from "../decorator/pokemonDecorators";
+import AppConfig from "../config";
+import type { TeamPanelConfig } from "../factory/TeamPanelFactory";
 
 interface TeamPanelProps {
+  config: TeamPanelConfig;
   team: DecoratedPokemon[];
   onRemove: (id: number) => void;
   onUndo: () => void;
   canUndo: boolean;
 }
 
-const MAX_TEAM_SIZE = 6;
-
-export function TeamPanel({ team, onRemove, onUndo, canUndo }: TeamPanelProps) {
-  const slots = Array.from({ length: MAX_TEAM_SIZE });
+export function TeamPanel({ config, team, onRemove, onUndo, canUndo }: TeamPanelProps) {
+  const slots = Array.from({ length: AppConfig.MAX_TEAM_SIZE });
 
   return (
-    <aside className="w-72 shrink-0">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm sticky top-6">
-        <h2 className="font-bold text-gray-800 text-lg mb-1">Mon équipe</h2>
-        <p className="text-xs text-gray-400 mb-4">{team.length} / {MAX_TEAM_SIZE} Pokémon</p>
+    <aside className="w-64 shrink-0">
+      <div className={`bg-white border-2 ${config.accentBorderClass} rounded-2xl p-5 shadow-sm sticky top-6`}>
+        <h2 className="font-bold text-gray-800 text-lg mb-1">{config.title}</h2>
+        <p className="text-xs text-gray-400 mb-4">{team.length} / {AppConfig.MAX_TEAM_SIZE} Pokémon</p>
 
         <div className="flex flex-col gap-2">
           {slots.map((_, i) => {
@@ -54,8 +55,12 @@ export function TeamPanel({ team, onRemove, onUndo, canUndo }: TeamPanelProps) {
           })}
         </div>
 
-        {team.length === MAX_TEAM_SIZE && (
-          <p className="text-xs text-red-400 mt-3 text-center font-medium">
+        {team.length === 0 && (
+          <p className="text-xs text-gray-400 mt-3 text-center italic">{config.emptyMessage}</p>
+        )}
+
+        {team.length === AppConfig.MAX_TEAM_SIZE && (
+          <p className={`text-xs ${config.accentTextClass} mt-3 text-center font-medium`}>
             Équipe complète !
           </p>
         )}

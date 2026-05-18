@@ -2,12 +2,19 @@ import type { PokemonViewModel } from "../types";
 
 interface PokemonCardProps {
   pokemon: PokemonViewModel;
-  onAdd: (pokemon: PokemonViewModel) => void;
-  isInTeam: boolean;
+  onAddToPlayer: (pokemon: PokemonViewModel) => void;
+  onAddToOpponent: (pokemon: PokemonViewModel) => void;
+  isInPlayerTeam: boolean;
+  isInOpponentTeam: boolean;
 }
 
-export function PokemonCard({ pokemon, onAdd, isInTeam }: PokemonCardProps) {
-
+export function PokemonCard({
+  pokemon,
+  onAddToPlayer,
+  onAddToOpponent,
+  isInPlayerTeam,
+  isInOpponentTeam,
+}: PokemonCardProps) {
   return (
     <div className={`bg-white border rounded-xl p-4 flex flex-col items-center gap-2 shadow-sm hover:shadow-md transition-shadow ${pokemon.isLegendary ? "border-yellow-400 ring-1 ring-yellow-300" : "border-gray-200"}`}>
       <img
@@ -32,15 +39,26 @@ export function PokemonCard({ pokemon, onAdd, isInTeam }: PokemonCardProps) {
           </span>
         ))}
       </div>
-      <button
-        onClick={() => onAdd(pokemon)}
-        disabled={isInTeam}
-        className="mt-1 w-full text-sm py-1.5 rounded-lg font-medium transition-colors
-          disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
-          bg-red-500 text-white hover:bg-red-600 cursor-pointer"
-      >
-        {isInTeam ? "Dans l'équipe" : "Ajouter"}
-      </button>
+      <div className="mt-1 w-full flex flex-col gap-1.5">
+        <button
+          onClick={() => onAddToPlayer(pokemon)}
+          disabled={isInPlayerTeam}
+          className="text-xs py-1.5 rounded-lg font-medium transition-colors
+            disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
+            bg-red-500 text-white hover:bg-red-600 cursor-pointer"
+        >
+          {isInPlayerTeam ? "Dans mon équipe" : "Ajouter à mon équipe"}
+        </button>
+        <button
+          onClick={() => onAddToOpponent(pokemon)}
+          disabled={isInOpponentTeam}
+          className="text-xs py-1.5 rounded-lg font-medium transition-colors
+            disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
+            bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+        >
+          {isInOpponentTeam ? "Chez l'adversaire" : "Ajouter à l'adversaire"}
+        </button>
+      </div>
     </div>
   );
 }
