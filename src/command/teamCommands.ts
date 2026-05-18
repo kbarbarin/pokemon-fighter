@@ -1,4 +1,4 @@
-import type { DecoratedPokemon } from "../decorator/pokemonDecorators";
+import type { PokemonViewModel } from "../types";
 
 export interface Command {
   execute(): void;
@@ -6,14 +6,14 @@ export interface Command {
 }
 
 export class AddPokemonCommand implements Command {
-  pokemon: DecoratedPokemon;
-  getTeam: () => DecoratedPokemon[];
-  setTeam: (team: DecoratedPokemon[]) => void;
+  pokemon: PokemonViewModel;
+  getTeam: () => PokemonViewModel[];
+  setTeam: (team: PokemonViewModel[]) => void;
 
   constructor(
-    pokemon: DecoratedPokemon,
-    getTeam: () => DecoratedPokemon[],
-    setTeam: (team: DecoratedPokemon[]) => void
+    pokemon: PokemonViewModel,
+    getTeam: () => PokemonViewModel[],
+    setTeam: (team: PokemonViewModel[]) => void
   ) {
     this.pokemon = pokemon;
     this.getTeam = getTeam;
@@ -31,14 +31,14 @@ export class AddPokemonCommand implements Command {
 
 export class RemovePokemonCommand implements Command {
   id: number;
-  snapshot: DecoratedPokemon[];
-  getTeam: () => DecoratedPokemon[];
-  setTeam: (team: DecoratedPokemon[]) => void;
+  snapshot: PokemonViewModel[];
+  getTeam: () => PokemonViewModel[];
+  setTeam: (team: PokemonViewModel[]) => void;
 
   constructor(
     id: number,
-    getTeam: () => DecoratedPokemon[],
-    setTeam: (team: DecoratedPokemon[]) => void
+    getTeam: () => PokemonViewModel[],
+    setTeam: (team: PokemonViewModel[]) => void
   ) {
     this.id = id;
     this.getTeam = getTeam;

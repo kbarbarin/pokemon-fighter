@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { PokemonType } from "./types";
-import type { DecoratedPokemon } from "./decorator/pokemonDecorators";
+import type { PokemonType, PokemonViewModel } from "./types";
 import AppConfig from "./config";
-import { PokemonApiAdapter } from "./adapter/PokemonApiAdapter";
-import { withPowerLevel, withLegendary } from "./decorator/pokemonDecorators";
 import { teamEvents } from "./observer/teamEvents";
 import { ByNameStrategy, ByTypeStrategy, BySortStrategy } from "./strategy/filterStrategies";
 import { AddPokemonCommand, RemovePokemonCommand, CommandHistory } from "./command/teamCommands";
@@ -11,30 +8,32 @@ import { FilterBar } from "./components/FilterBar";
 import { PokemonList } from "./components/PokemonList";
 import { TeamPanel } from "./components/TeamPanel";
 import { Notification } from "./components/Notification";
+import { PokeAPIRepository } from "./repository/apiRepository";
+import { presentPokemon } from "./presenter/PokemonPresenter";
 
 function App() {
-  const [pokemons, setPokemons] = useState<DecoratedPokemon[]>([]);
-  const [team, setTeam] = useState<DecoratedPokemon[]>([]);
+  const [pokemons, setPokemons] = useState<PokemonViewModel[]>([]);
+  const [team, setTeam] = useState<PokemonViewModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<PokemonType | "all">("all");
   const [sortBy, setSortBy] = useState<"none" | "name" | "hp" | "attack" | "speed">("none");
   const [canUndo, setCanUndo] = useState(false);
-  const teamRef = useRef<DecoratedPokemon[]>([]);
+  const teamRef = useRef<PokemonViewModel[]>([]);
   const history = useRef(new CommandHistory());
 
   useEffect(() => { teamRef.current = team; }, [team]);
 
   useEffect(() => {
-    const adapter = new PokemonApiAdapter();
+    const repository = new PokeAPIRepository();
     setLoading(true);
-    adapter.fetchAll().then((data) => {
-      setPokemons(data.map((p) => withLegendary(withPowerLevel(p))));
+    repository.getAllPokemon().then((data) => {
+      setPokemons(data.map((p) => presentPokemon(p)));
       setLoading(false);
     });
   }, []);
 
-  function handleAdd(pokemon: DecoratedPokemon) {
+  function handleAdd(pokemon: PokemonViewModel) {
     if (team.length >= AppConfig.MAX_TEAM_SIZE) {
       teamEvents.emit<string>("team:full", "Équipe complète ! Retirez un Pokémon pour en ajouter un autre.");
       return;

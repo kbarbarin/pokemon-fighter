@@ -1,8 +1,9 @@
 import type { DecoratedPokemon } from "../decorator/pokemonDecorators";
+import type { PokemonViewModel } from "../types";
 import { PokemonCard } from "./PokemonCard";
 
 interface PokemonListProps {
-  pokemons: DecoratedPokemon[];
+  pokemons: PokemonViewModel[];
   teamIds: number[];
   onAdd: (pokemon: DecoratedPokemon) => void;
 }

@@ -1,3 +1,5 @@
+import type { DecoratedPokemon } from "./decorator/pokemonDecorators";
+
 export type PokemonType =
   | "fire"
   | "water"
@@ -39,6 +41,11 @@ export interface RawPokemon {
   };
   types: { type: { name: PokemonType } }[];
   stats: { base_stat: number }[];
+}
+
+export interface PokemonViewModel extends DecoratedPokemon{
+  typeColor: string[];
+  formattedId: string;
 }
 
 export interface TeamSlot {
