@@ -94,7 +94,7 @@ function App() {
         </div>
 
         <TeamPanel team={team} onRemove={handleRemove} onUndo={handleUndo} canUndo={canUndo} />
-      </main>
+        <TeamPanel team={team} onRemove={handleRemove} onUndo={handleUndo} canUndo={canUndo} />      </main>
       <Notification />
     </div>
   );
