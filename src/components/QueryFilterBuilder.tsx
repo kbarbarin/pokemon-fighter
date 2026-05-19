@@ -1,5 +1,4 @@
 import type { PokemonFilterCriteria } from "../builder/filterBuilder";
-import { EMPTY_FILTER_CRITERIA } from "../builder/filterBuilder";
 import type { PokemonType } from "../types";
 
 const TYPES: PokemonType[] = [
@@ -11,19 +10,17 @@ const TYPES: PokemonType[] = [
 interface QueryFilterBuilderProps {
   criteria: PokemonFilterCriteria;
   onChange: (criteria: PokemonFilterCriteria) => void;
+  onApply: () => void;
+  onReset: () => void;
 }
 
 const inputClass =
   "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400";
 const labelClass = "block text-xs font-medium text-gray-600 mb-1 capitalize";
 
-export function QueryFilterBuilder({ criteria, onChange }: QueryFilterBuilderProps) {
+export function QueryFilterBuilder({ criteria, onChange, onApply, onReset }: QueryFilterBuilderProps) {
   function update<K extends keyof PokemonFilterCriteria>(key: K, value: PokemonFilterCriteria[K]) {
     onChange({ ...criteria, [key]: value });
-  }
-
-  function handleReset() {
-    onChange({ ...EMPTY_FILTER_CRITERIA });
   }
 
   return (
@@ -32,7 +29,7 @@ export function QueryFilterBuilder({ criteria, onChange }: QueryFilterBuilderPro
         <h2 className="text-sm font-semibold text-gray-800">Filtres avancés</h2>
         <button
           type="button"
-          onClick={handleReset}
+          onClick={onReset}
           className="text-xs text-gray-500 hover:text-red-500 transition-colors"
         >
           Réinitialiser
@@ -164,6 +161,12 @@ export function QueryFilterBuilder({ criteria, onChange }: QueryFilterBuilderPro
           />
         </div>
       </div>
+      <button className="mt-4 w-full text-sm py-2 rounded-lg font-medium transition-colors
+            disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed
+            bg-red-500 text-white hover:bg-red-600 cursor-pointer"
+             type="button" onClick={onApply}>
+        Appliquer les filtres
+      </button>
     </section>
   );
 }

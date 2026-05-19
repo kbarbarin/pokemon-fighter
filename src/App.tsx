@@ -4,7 +4,7 @@ import AppConfig from "./config";
 import { teamEvents } from "./observer/teamEvents";
 import { BySortStrategy } from "./strategy/filterStrategies";
 import { AddPokemonCommand, RemovePokemonCommand, CommandHistory } from "./command/teamCommands";
-import { applyPokemonFilter, EMPTY_FILTER_CRITERIA } from "./builder/filterBuilder";
+import { applyPokemonFilter, EMPTY_FILTER_CRITERIA, PokemonFilterBuilder } from "./builder/filterBuilder";
 import type { PokemonFilterCriteria } from "./builder/filterBuilder";
 import { QueryFilterBuilder } from "./components/QueryFilterBuilder";
 import { PokemonList } from "./components/PokemonList";
@@ -28,6 +28,7 @@ function App() {
   const [playerTeam, setPlayerTeam] = useState<PokemonViewModel[]>([]);
   const [opponentTeam, setOpponentTeam] = useState<PokemonViewModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [appliedFilterCriteria, setAppliedFilterCriteria] = useState<PokemonFilterCriteria>(EMPTY_FILTER_CRITERIA);
   const [filterCriteria, setFilterCriteria] = useState<PokemonFilterCriteria>(EMPTY_FILTER_CRITERIA);
   const [sortBy, setSortBy] = useState<"none" | "name" | "hp" | "attack" | "speed">("none");
   const [canUndoPlayer, setCanUndoPlayer] = useState(false);
@@ -57,9 +58,30 @@ function App() {
   }, []);
 
   const filtered = useMemo(
-    () => new BySortStrategy(sortBy).apply(applyPokemonFilter(pokemons, filterCriteria)),
-    [pokemons, filterCriteria, sortBy]
+    () => new BySortStrategy(sortBy).apply(applyPokemonFilter(pokemons, appliedFilterCriteria)),
+    [pokemons, appliedFilterCriteria, sortBy]
   );
+
+  const handleApplyFilters = () => 
+  {
+    setAppliedFilterCriteria(
+      new PokemonFilterBuilder()
+        .withType1(filterCriteria.type1)
+        .withType2(filterCriteria.type2)
+        .withName(filterCriteria.name)
+        .withPowerLevelMin(filterCriteria.powerLevelMin)
+        .withPowerLevelMax(filterCriteria.powerLevelMax)
+        .withMoves(filterCriteria.moves)
+        .withEvolution(filterCriteria.evolution)
+        .withAbilities(filterCriteria.abilities)
+        .build()
+    )
+  }
+
+  const handleResetFilters = () => {
+    setFilterCriteria(EMPTY_FILTER_CRITERIA);
+    setAppliedFilterCriteria(EMPTY_FILTER_CRITERIA);
+  }
 
   useEffect(() => {
     paginatorRef.current = new PokemonPaginator(filtered, PAGE_SIZE);
@@ -141,7 +163,7 @@ function App() {
         />
 
         <div className="flex-1 min-w-0">
-          <QueryFilterBuilder criteria={filterCriteria} onChange={setFilterCriteria} />
+          <QueryFilterBuilder criteria={filterCriteria} onChange={setFilterCriteria} onApply={handleApplyFilters} onReset={handleResetFilters} />
 
           <div className="flex justify-end mb-6">
             <select

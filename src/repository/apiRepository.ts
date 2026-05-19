@@ -28,20 +28,4 @@ export class PokeAPIRepository implements PokemonRepository {
     
         return PokemonFactory.create(data);   
     }
-
-    async getMoves()
-    {
-        const res = await fetch(`${this.baseUrl}/move?limit=937`);
-        const data = await res.json();
-
-        return data
-    }
-
-    async getAbilities()
-    {
-        const res = await fetch(`${this.baseUrl}/ability?limit=371`);
-        const data = await res.json();
-
-        return data
-    }
 }
